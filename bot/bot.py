@@ -25,7 +25,7 @@ def start(update: Update, context: CallbackContext):
 def error(update: Update, context: CallbackContext, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
 
-
+"""
 def setup(webhook_url=None):
     #If webhook_url is not passed, run with long-polling.
     #logging.basicConfig(level=logging.WARNING)
@@ -58,7 +58,29 @@ def setup(webhook_url=None):
         bot.set_webhook()  # Delete webhook
         updater.start_polling()
         updater.idle()
-
+"""
 
 if __name__ == '__main__':
-    setup(bot_config.WEBHOOK_URL)
+    # Set these variable to the appropriate values
+    TOKEN = bot_config.TOKEN
+    NAME = 'voicesaver'
+
+    # Port is given by Heroku
+    PORT = os.environ.get('PORT')
+
+    # Set up the Updater
+    updater = Updater(bot_config.TOKEN, use_context=True, request_kwargs=bot_config.REQUEST_KWARGS)
+    bot = updater.bot
+    dp = updater.dispatcher
+    update_queue = updater.update_queue
+
+    # Add handlers
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_error_handler(error)
+
+    # Start the webhook
+    updater.start_webhook(listen="0.0.0.0",
+                          port=int(PORT),
+                          url_path=TOKEN)
+    updater.bot.setWebhook("https://{}.herokuapp.com/{}".format(NAME, TOKEN))
+    updater.idle()

@@ -12,4 +12,4 @@ WEBHOOK = True
 IP = '0.0.0.0'
 PORT = 8080
 URL_PATH = TOKEN
-WEBHOOK_URL = 'http://voicesaver-voicesaver.1d35.starter-us-east-1.openshiftapps.com/' % (URL_PATH,)
+WEBHOOK_URL = ''
