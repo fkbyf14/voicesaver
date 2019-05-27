@@ -9,7 +9,7 @@ REQUEST_KWARGS = {
 
 WEBHOOK = True
 ## The following configuration is only needed if you setted WEBHOOK to True ##
-IP = '0.0.0.0'
+IP = '172.30.138.233'
 PORT = 8080
 URL_PATH = TOKEN
 WEBHOOK_URL = 'http://voicesaver-voicesaver.1d35.starter-us-east-1.openshiftapps.com/' % (URL_PATH,)
