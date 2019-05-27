@@ -3,29 +3,49 @@ import logging
 import os
 from queue import Queue
 from threading import Thread
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Handler, Dispatcher, CallbackContext
-from telegram import Update, Bot
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Handler, Dispatcher, CallbackContext, TypeHandler
+
+
+from telegram import Update, Bot, Chat
 from telegram.utils import request
 from configurations import bot_config
-
-
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 
-
 logger = logging.getLogger()
+chat_voices = dict()
 
 
 def start(update: Update, context: CallbackContext):
     context.bot.sendMessage(chat_id=update.message.chat_id, text="Have fun!")
+    chat_voices[str(update.message.chat_id)] = list()
     print("chat_id from start:", update.message.chat_id)
 
 
 def error(update: Update, context: CallbackContext, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
 
-"""
+
+def voice_handler(update: Update, context: CallbackContext):
+    file_id = update.message.voice.file_id
+    chat_id = str(update.message.chat_id)
+    file = context.bot.get_file(file_id)
+
+    print("chat_voices", chat_voices)
+
+    if not os.path.isdir(chat_id):
+        os.mkdir(chat_id)
+    print("downloading....")
+    chat_voices[chat_id].append(file_id)
+    try:
+        file.download(chat_id)
+    except PermissionError:
+        context.bot.sendMessage(text="Please, configure permissions for folder access")
+
+
+
+
 def setup(webhook_url=None):
     #If webhook_url is not passed, run with long-polling.
     #logging.basicConfig(level=logging.WARNING)
@@ -38,49 +58,20 @@ def setup(webhook_url=None):
         updater = Updater(bot_config.TOKEN, use_context=True, request_kwargs=bot_config.REQUEST_KWARGS)
         bot = updater.bot
         dp = updater.dispatcher
-        update_queue = updater.update_queue
 
-    #last_update = update_queue.get().to_json()
-
-    #print('last up', last_update)
-    #chat_1 = last_update['message']['chat']['id']
-    #print("chat_1", chat_1)
-    #dp.add_handler(MessageHandler(Filters.chat(chat_1) & Filters.voice, voice_handler))
     dp.add_handler(CommandHandler("start", start))
-    #dp.add_handler(MessageHandler([], example_handler))  # Remove this line
-    
+    dp.add_handler(MessageHandler(Filters.voice, voice_handler))
+
     if webhook_url:
         bot.set_webhook(webhook_url=webhook_url)
         thread = Thread(target=dp.start, name='dispatcher')
         thread.start()
         return update_queue, bot
     else:
-        bot.set_webhook()  # Delete webhook
+        #bot.set_webhook()  # Delete webhook
         updater.start_polling()
         updater.idle()
-"""
+
 
 if __name__ == '__main__':
-    # Set these variable to the appropriate values
-    TOKEN = bot_config.TOKEN
-    NAME = 'voicesaver'
-
-    # Port is given by Heroku
-    PORT = os.environ.get('PORT')
-
-    # Set up the Updater
-    updater = Updater(bot_config.TOKEN, use_context=True, request_kwargs=bot_config.REQUEST_KWARGS)
-    bot = updater.bot
-    dp = updater.dispatcher
-    update_queue = updater.update_queue
-
-    # Add handlers
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_error_handler(error)
-
-    # Start the webhook
-    updater.start_webhook(listen="0.0.0.0",
-                          port=int(PORT),
-                          url_path=TOKEN)
-    updater.bot.setWebhook("https://{}.herokuapp.com/{}".format(NAME, TOKEN))
-    updater.idle()
+    setup()

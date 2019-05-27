@@ -4,7 +4,7 @@ TOKEN = os.getenv('TOKEN')
 NAME = "voicesaver"
 
 REQUEST_KWARGS = {
-    'proxy_url': "socks4://23.180.0.14:32409"
+    'proxy_url': "socks4://186.47.85.210:58722"
 }
 
 WEBHOOK = True
