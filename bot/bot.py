@@ -40,8 +40,9 @@ def voice_handler(update, context):
         file.download(custom_path=os.path.join(chat_id, file_name))
         chat_voices[chat_id].append(file_name)
         logging.debug("chat_voices: {}".format(chat_voices))
-    except PermissionError:
-        context.bot.sendMessage(chat_id=update.message.chat_id, text="Please, configure permissions for work directory")
+    except OSError as e:
+        context.bot.sendMessage(chat_id=update.message.chat_id, text="Please, check permissions for work directory")
+        logging.error("OSError: {0}".format(e))
 
 
 def setup(webhook_url=None):
