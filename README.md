@@ -1,6 +1,6 @@
 # Voicesaver Bot
 
-A bot which enables to download voice messages from telegram chats to your server.
+A telegram bot which enables to download voice messages from telegram chats to your server.
 
 ## Installation and starting:
 Clone the repository:
