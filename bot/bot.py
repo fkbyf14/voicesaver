@@ -1,14 +1,14 @@
-import json
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import logging
 import os
 from queue import Queue
 from threading import Thread
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Handler, Dispatcher, CallbackContext, TypeHandler
-
-
-from telegram import Update, Bot, Chat
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Dispatcher
+from telegram import Bot
 from telegram.utils import request
-from configurations import bot_config
+from configurations.bot_config import config
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
@@ -17,50 +17,49 @@ logger = logging.getLogger()
 chat_voices = dict()
 
 
-def start(update: Update, context: CallbackContext):
-    context.bot.sendMessage(chat_id=update.message.chat_id, text="Have fun!")
-    chat_voices[str(update.message.chat_id)] = list()
-    print("chat_id from start:", update.message.chat_id)
+def start(update, context):
+    context.bot.sendMessage(chat_id=update.message.chat_id, text='Hello! I\'m bot Saver Voicevich, I\'ll save all '
+                                                                 'voice messages from chats, where I\'m added.')
 
 
-def error(update: Update, context: CallbackContext, error):
-    logger.warning('Update "%s" caused error "%s"' % (update, error))
+def error(update, context):
+    logger.warning('Update "%s" caused error "%s"' % (update, context.error))
 
 
-def voice_handler(update: Update, context: CallbackContext):
+def voice_handler(update, context):
     file_id = update.message.voice.file_id
     chat_id = str(update.message.chat_id)
+    if not chat_voices.get(chat_id):
+        chat_voices[chat_id] = list()
     file = context.bot.get_file(file_id)
 
-    print("chat_voices", chat_voices)
-
-    if not os.path.isdir(chat_id):
-        os.mkdir(chat_id)
-    print("downloading....")
-    chat_voices[chat_id].append(file_id)
     try:
-        file.download(chat_id)
+        if not os.path.isdir(chat_id):
+            os.mkdir(chat_id)
+
+        file_name = 'voice_message_{}'.format(len(os.listdir(chat_id)))
+        file.download(custom_path=os.path.join(chat_id, file_name))
+        chat_voices[chat_id].append(file_name)
+        logging.debug("chat_voices: {}".format(chat_voices))
     except PermissionError:
-        context.bot.sendMessage(text="Please, configure permissions for folder access")
-
-
+        context.bot.sendMessage(chat_id=update.message.chat_id, text="Please, configure permissions for work directory")
 
 
 def setup(webhook_url=None):
-    #If webhook_url is not passed, run with long-polling.
-    #logging.basicConfig(level=logging.WARNING)
+    """If webhook_url is not passed, run with long-polling."""
     if webhook_url:
-        req = request.Request(1, bot_config.REQUEST_KWARGS['proxy_url'])
-        bot = Bot(bot_config.TOKEN, req)
+        req = request.Request(1, config.REQUEST_KWARGS['proxy_url'])
+        bot = Bot(config.TOKEN, req)
         update_queue = Queue()
         dp = Dispatcher(bot, update_queue)
     else:
-        updater = Updater(bot_config.TOKEN, use_context=True, request_kwargs=bot_config.REQUEST_KWARGS)
+        updater = Updater(config.TOKEN, use_context=True, request_kwargs=config.REQUEST_KWARGS)
         bot = updater.bot
         dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(MessageHandler(Filters.voice, voice_handler))
+    dp.add_error_handler(error)
 
     if webhook_url:
         bot.set_webhook(webhook_url=webhook_url)
@@ -68,7 +67,6 @@ def setup(webhook_url=None):
         thread.start()
         return update_queue, bot
     else:
-        #bot.set_webhook()  # Delete webhook
         updater.start_polling()
         updater.idle()
 
